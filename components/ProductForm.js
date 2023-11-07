@@ -12,11 +12,13 @@ export default function ProductForm({
   price: existingPrice,
   images: existingImages,
   category: existingCategory,
+  properties: assignedProperties
 }) {
   const [title, setTitle] = useState(existingTitle || "");
   const [description, setDescription] = useState(existingDescription || "");
   const [categories, setCategories] = useState([]);
   const [category, setCategory] = useState(existingCategory || "");
+  const [productProperties, setProductProperties] = useState(assignedProperties || "");
   const [price, setPrice] = useState(existingPrice || "");
   const [images, setImages] = useState(existingImages || []);
   const [goToProducts, setGoToProducts] = useState(false);
@@ -72,6 +74,27 @@ export default function ProductForm({
     setImages(images);
   }
 
+  const propertiesToFill = [];
+  if (categories.length > 0 && category) {
+    let catInfo = categories.find(({ _id }) => _id === category);
+    propertiesToFill.push(...catInfo.properties);
+    while (catInfo.parent?._id) {
+      const parentCat = categories.find(
+        ({ _id }) => _id === catInfo.parent?._id
+      );
+      propertiesToFill.push(...parentCat.properties);
+      catInfo = parentCat;
+    }
+  }
+
+  function setProductProp(name, value) {
+    setProductProperties((prev) => {
+      const newProductProps = { ...prev };
+      newProductProps[name] = value;
+      return newProductProps;
+    });
+  }
+
   return (
     <form onSubmit={saveProduct}>
       <label>Product Name</label>
@@ -91,6 +114,20 @@ export default function ProductForm({
             </option>
           ))}
       </select>
+      {categories.length > 0 &&
+        propertiesToFill.map((p) => (
+          <div className="flex gap-1">
+            <div>{p.name}</div>
+            <select
+              value={productProperties[p.name]}
+              onChange={(e) => setProductProp(p.name, e.target.value)}
+            >
+              {p.values.map((v) => (
+                <option value={v}>{v}</option>
+              ))}
+            </select>
+          </div>
+        ))}
       <label>Photos</label>
       <div className="mb-2 flex flex-wrap gap-2">
         <ReactSortable
@@ -142,7 +179,9 @@ export default function ProductForm({
         value={price}
         onChange={(e) => setPrice(e.target.value)}
       ></input>
-      <button type="button" className="btn-primary">Save</button>
+      <button type="submit" className="btn-primary">
+        Save
+      </button>
     </form>
   );
 }
